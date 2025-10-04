@@ -22,14 +22,30 @@
 
     h1 {
       font-size: 2.5em;
-      margin-bottom: 20px;
-      text-shadow: 2px 2px 8px rgba(0,0,0,0.5);
+      margin-bottom: 15px;
+      text-shadow: 2px 2px 8px rgba(0,0,0,0.6);
     }
 
     p {
       font-size: 1.2em;
-      margin-bottom: 40px;
-      text-shadow: 1px 1px 5px rgba(0,0,0,0.6);
+      margin-bottom: 30px;
+      text-shadow: 1px 1px 5px rgba(0,0,0,0.7);
+    }
+
+    .progress-container {
+      width: 60%;
+      height: 18px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 9px;
+      overflow: hidden;
+      margin: 20px auto;
+    }
+
+    .progress-bar {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #0074d9, #00c3ff);
+      transition: width 0.3s;
     }
 
     .enter-btn {
@@ -42,6 +58,7 @@
       cursor: pointer;
       transition: transform 0.2s, background 0.3s;
       box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+      margin-top: 30px;
     }
 
     .enter-btn:hover {
@@ -51,15 +68,76 @@
   </style>
 </head>
 <body>
-  <h1>欢迎访问本站</h1>
-  <p>正在为您提供最快速的访问入口</p>
-  <button class="enter-btn" onclick="goNext()">进入官网</button>
+  <h1 id="welcome">欢迎访问本站</h1>
+  <p id="status">正在为您检测最快的线路，请稍候…</p>
+
+  <div class="progress-container">
+    <div class="progress-bar" id="progressBar"></div>
+  </div>
+
+  <button class="enter-btn" onclick="manualEnter()">立即进入</button>
 
   <script>
-    function goNext() {
-      // 修改这里的地址为你自己的目标站点
-      window.location.href = "https://xlw.app";
+    // 配置多线路（支持 base64 或明文 URL）
+    const urls = [
+      "aHR0cHM6Ly9leGFtcGxlMS5jb20v", // base64: https://example1.com/
+      "https://example2.org/",
+      "aHR0cHM6Ly91c2VyMy54bHcuYXBwLw==" // 你的原始地址
+    ];
+
+    // 解码 base64 或直接返回
+    function decodeUrl(str) {
+      try {
+        const decoded = atob(str);
+        if (decoded.startsWith("http")) return decoded;
+      } catch (e) {}
+      return str;
     }
+
+    const decodedUrls = urls.map(u => decodeUrl(u));
+    let redirected = false;
+    let responses = 0;
+
+    // 进度条
+    function updateProgress() {
+      responses++;
+      const bar = document.getElementById("progressBar");
+      bar.style.width = (responses / decodedUrls.length) * 100 + "%";
+    }
+
+    // 检查可用线路
+    async function checkUrls() {
+      for (const url of decodedUrls) {
+        try {
+          const start = Date.now();
+          await fetch(url, {mode: "no-cors"});
+          const time = Date.now() - start;
+          console.log(`${url} 响应时间: ${time}ms`);
+          if (!redirected) {
+            redirected = true;
+            document.getElementById("status").innerText = "已找到可用线路，正在跳转…";
+            window.location.href = url;
+          }
+        } catch (e) {
+          console.warn(`无法访问 ${url}`);
+        } finally {
+          updateProgress();
+        }
+      }
+      if (!redirected) {
+        document.getElementById("status").innerText = "没有可用线路，请联系管理员";
+      }
+    }
+
+    // 手动按钮跳转（备用）
+    function manualEnter() {
+      if (decodedUrls.length > 0) {
+        window.location.href = decodedUrls[0];
+      }
+    }
+
+    // 自动开始检测
+    checkUrls();
   </script>
 </body>
 </html>
