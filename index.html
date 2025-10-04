@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>加速入口</title>
+  <title>仙路湾加速入口</title>
   <style>
     body {
       margin: 0;
@@ -68,8 +68,9 @@
   </style>
 </head>
 <body>
-  <h1 id="welcome">欢迎访问本站</h1>
+  <h1 id="welcome">欢迎访问仙路湾</h1>
   <p id="status">正在为您检测最快的线路，请稍候…</p>
+  <p id="countdown"></p>
 
   <div class="progress-container">
     <div class="progress-bar" id="progressBar"></div>
@@ -80,16 +81,16 @@
   <script>
     // 配置多线路（支持 base64 或明文 URL）
     const urls = [
-    "aHR0cHM6Ly9leGFtcGxlMS5jb20v", // base64: https://example1.com/
-    "aHR0cHM6Ly91c2VyMS54bHcuYXBwLw==",
-    "aHR0cHM6Ly91c2VyMi54bHcuYXBwLw==",
-    "aHR0cHM6Ly91c2VyMy54bHcuYXBwLw==",
-    "aHR0cHM6Ly91c2VyNC54bHcuYXBwLw==",
-    "aHR0cHM6Ly91c2VyNS54bHcuYXBwLw==",
-    "aHR0cHM6Ly91c2VyNi54bHcuYXBwLw==",
-    "aHR0cHM6Ly91c2VyNy54bHcuYXBwLw==",
-    "aHR0cHM6Ly91c2VyOC54bHcuYXBwLw==",
-    "aHR0cHM6Ly91c2VyOS54bHcuYXBwLw=="
+      "aHR0cHM6Ly9leGFtcGxlMS5jb20v",
+      "aHR0cHM6Ly91c2VyMS54bHcuYXBwLw==",
+      "aHR0cHM6Ly91c2VyMi54bHcuYXBwLw==",
+      "aHR0cHM6Ly91c2VyMy54bHcuYXBwLw==",
+      "aHR0cHM6Ly91c2VyNC54bHcuYXBwLw==",
+      "aHR0cHM6Ly91c2VyNS54bHcuYXBwLw==",
+      "aHR0cHM6Ly91c2VyNi54bHcuYXBwLw==",
+      "aHR0cHM6Ly91c2VyNy54bHcuYXBwLw==",
+      "aHR0cHM6Ly91c2VyOC54bHcuYXBwLw==",
+      "aHR0cHM6Ly91c2VyOS54bHcuYXBwLw=="
     ];
 
     // 解码 base64 或直接返回
@@ -111,6 +112,25 @@
       const bar = document.getElementById("progressBar");
       bar.style.width = (responses / decodedUrls.length) * 100 + "%";
     }
+
+    // 倒计时（默认 5 秒）
+    let countdown = 5;
+    const countdownEl = document.getElementById("countdown");
+    const timer = setInterval(() => {
+      if (redirected) {
+        clearInterval(timer);
+        return;
+      }
+      countdownEl.innerText = `${countdown} 秒后自动进入`;
+      if (countdown <= 0) {
+        clearInterval(timer);
+        if (!redirected) {
+          redirected = true;
+          window.location.href = decodedUrls[0]; // 超时后跳第一个
+        }
+      }
+      countdown--;
+    }, 1000);
 
     // 检查可用线路
     async function checkUrls() {
