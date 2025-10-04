@@ -1,16 +1,65 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
-  <head>
-    <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width,initial-scale=1.0">
-    <title>线路检测</title>
-  <script defer src="/js/chunk-vendors.2b568997.js"></script><script defer src="/js/app.1c679c4f.js"></script><link href="/css/app.bb3adc51.css" rel="stylesheet"></head>
-  <body>
-    <noscript>
-      <strong>很抱歉，如果没有启用 JavaScript，将无法正常工作。请启用它以继续。</strong>
-    </noscript>
-    <div id="app"></div>
-    <script type="text/javascript">window.$crisp=[];window.CRISP_WEBSITE_ID="0f267bf9-a61b-48da-870b-b4bac9ed9a9f";(function(){d=document;s=d.createElement("script");s.src="https://client.crisp.chat/l.js";s.async=1;d.getElementsByTagName("head")[0].appendChild(s);})();</script>
-  </body>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>加速入口</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: "Microsoft YaHei", Arial, sans-serif;
+      background: url('images/background.jpg') no-repeat center center fixed;
+      background-size: cover;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      color: white;
+      text-align: center;
+    }
+
+    h1 {
+      font-size: 2.5em;
+      margin-bottom: 20px;
+      text-shadow: 2px 2px 8px rgba(0,0,0,0.5);
+    }
+
+    p {
+      font-size: 1.2em;
+      margin-bottom: 40px;
+      text-shadow: 1px 1px 5px rgba(0,0,0,0.6);
+    }
+
+    .enter-btn {
+      padding: 15px 40px;
+      font-size: 1.2em;
+      color: white;
+      background: linear-gradient(90deg, #0074d9, #00c3ff);
+      border: none;
+      border-radius: 30px;
+      cursor: pointer;
+      transition: transform 0.2s, background 0.3s;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    }
+
+    .enter-btn:hover {
+      transform: scale(1.05);
+      background: linear-gradient(90deg, #0056b3, #0099cc);
+    }
+  </style>
+</head>
+<body>
+  <h1>欢迎访问本站</h1>
+  <p>正在为您提供最快速的访问入口</p>
+  <button class="enter-btn" onclick="goNext()">进入官网</button>
+
+  <script>
+    function goNext() {
+      // 修改这里的地址为你自己的目标站点
+      window.location.href = "https://xlw.app";
+    }
+  </script>
+</body>
 </html>
