@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>仙路湾加速入口</title>
+  <title>仙路湾官网入口</title>
   <style>
     body {
       margin: 0;
@@ -19,19 +19,16 @@
       color: white;
       text-align: center;
     }
-
     h1 {
       font-size: 2.5em;
       margin-bottom: 15px;
       text-shadow: 2px 2px 8px rgba(0,0,0,0.6);
     }
-
     p {
       font-size: 1.2em;
-      margin-bottom: 30px;
+      margin-bottom: 20px;
       text-shadow: 1px 1px 5px rgba(0,0,0,0.7);
     }
-
     .progress-container {
       width: 60%;
       height: 18px;
@@ -40,14 +37,12 @@
       overflow: hidden;
       margin: 20px auto;
     }
-
     .progress-bar {
       height: 100%;
       width: 0%;
       background: linear-gradient(90deg, #0074d9, #00c3ff);
       transition: width 0.3s;
     }
-
     .enter-btn {
       padding: 15px 40px;
       font-size: 1.2em;
@@ -60,7 +55,6 @@
       box-shadow: 0 4px 10px rgba(0,0,0,0.3);
       margin-top: 30px;
     }
-
     .enter-btn:hover {
       transform: scale(1.05);
       background: linear-gradient(90deg, #0056b3, #0099cc);
@@ -69,8 +63,10 @@
 </head>
 <body>
   <h1 id="welcome">欢迎访问仙路湾</h1>
-  <p id="status">正在为您检测最快的线路，请稍候…</p>
+  <p id="status">页面加载完成</p>
+  <p id="pre-countdown"></p>
   <p id="countdown"></p>
+  <p id="current-check"></p> <!-- 新增：显示正在检测的线路 -->
 
   <div class="progress-container">
     <div class="progress-bar" id="progressBar"></div>
@@ -81,16 +77,16 @@
   <script>
     // 配置多线路（支持 base64 或明文 URL）
     const urls = [
-      "aHR0cDovL3VzZXIxMS54bHcuYXBwLw==",
-      "aHR0cHM6Ly91c2VyMS54bHcuYXBwLw==",
-      "aHR0cHM6Ly91c2VyMi54bHcuYXBwLw==",
-      "aHR0cHM6Ly91c2VyMy54bHcuYXBwLw==",
-      "aHR0cHM6Ly91c2VyNC54bHcuYXBwLw==",
-      "aHR0cHM6Ly91c2VyNS54bHcuYXBwLw==",
-      "aHR0cHM6Ly91c2VyNi54bHcuYXBwLw==",
-      "aHR0cHM6Ly91c2VyNy54bHcuYXBwLw==",
-      "aHR0cHM6Ly91c2VyOC54bHcuYXBwLw==",
-      "aHR0cHM6Ly91c2VyOS54bHcuYXBwLw=="
+      "aHR0cDovL3VzZXIxMS54bHcuYXBwLw==", // http://user11.xlw.app/
+      "aHR0cHM6Ly91c2VyMS54bHcuYXBwLw==", // https://user1.xlw.app/
+      "aHR0cHM6Ly91c2VyMi54bHcuYXBwLw==", // https://user2.xlw.app/
+      "aHR0cHM6Ly91c2VyMy54bHcuYXBwLw==", // https://user3.xlw.app/
+      "aHR0cHM6Ly91c2VyNC54bHcuYXBwLw==", // https://user4.xlw.app/
+      "aHR0cHM6Ly91c2VyNS54bHcuYXBwLw==", // https://user5.xlw.app/
+      "aHR0cHM6Ly91c2VyNi54bHcuYXBwLw==", // https://user6.xlw.app/
+      "aHR0cHM6Ly91c2VyNy54bHcuYXBwLw==", // https://user7.xlw.app/
+      "aHR0cHM6Ly91c2VyOC54bHcuYXBwLw==", // https://user8.xlw.app/
+      "aHR0cHM6Ly91c2VyOS54bHcuYXBwLw=="  // https://user9.xlw.app/
     ];
 
     // 解码 base64 或直接返回
@@ -106,35 +102,19 @@
     let redirected = false;
     let responses = 0;
 
-    // 进度条
+    // 更新进度条
     function updateProgress() {
       responses++;
       const bar = document.getElementById("progressBar");
       bar.style.width = (responses / decodedUrls.length) * 100 + "%";
     }
 
-    // 倒计时（默认 5 秒）
-    let countdown = 5;
-    const countdownEl = document.getElementById("countdown");
-    const timer = setInterval(() => {
-      if (redirected) {
-        clearInterval(timer);
-        return;
-      }
-      countdownEl.innerText = `${countdown} 秒后自动进入`;
-      if (countdown <= 0) {
-        clearInterval(timer);
-        if (!redirected) {
-          redirected = true;
-          window.location.href = decodedUrls[0]; // 超时后跳第一个
-        }
-      }
-      countdown--;
-    }, 1000);
-
     // 检查可用线路
     async function checkUrls() {
-      for (const url of decodedUrls) {
+      for (let i = 0; i < decodedUrls.length; i++) {
+        const url = decodedUrls[i];
+        document.getElementById("current-check").innerText = `正在检测第 ${i+1} 条线路: ${url}`;
+
         try {
           const start = Date.now();
           await fetch(url, {mode: "no-cors"});
@@ -156,15 +136,48 @@
       }
     }
 
-    // 手动按钮跳转（备用）
+    // 手动进入
     function manualEnter() {
       if (decodedUrls.length > 0) {
         window.location.href = decodedUrls[0];
       }
     }
 
-    // 自动开始检测
-    checkUrls();
+    // 前置倒计时 3 秒
+    let preCountdown = 3;
+    const preCountdownEl = document.getElementById("pre-countdown");
+    const preTimer = setInterval(() => {
+      preCountdownEl.innerText = `${preCountdown} 秒后开始检测线路…`;
+      if (preCountdown <= 0) {
+        clearInterval(preTimer);
+        preCountdownEl.innerText = "";
+        document.getElementById("status").innerText = "正在为您检测最快的线路，请稍候…";
+        startDetection();
+      }
+      preCountdown--;
+    }, 1000);
+
+    // 正式检测 + 5 秒倒计时
+    function startDetection() {
+      checkUrls();
+      let countdown = 5;
+      const countdownEl = document.getElementById("countdown");
+      const timer = setInterval(() => {
+        if (redirected) {
+          clearInterval(timer);
+          return;
+        }
+        countdownEl.innerText = `${countdown} 秒后自动进入主线路`;
+        if (countdown <= 0) {
+          clearInterval(timer);
+          if (!redirected) {
+            redirected = true;
+            window.location.href = decodedUrls[0];
+          }
+        }
+        countdown--;
+      }, 1000);
+    }
   </script>
 </body>
 </html>
