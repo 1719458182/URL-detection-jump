@@ -62,8 +62,8 @@
   </style>
 </head>
 <body>
-  <h1 id="welcome">欢迎访问仙路湾</h1>
-  <p id="status">页面加载完成</p>
+  <h1 id="welcome">仙路湾</h1>
+  <p id="status">正在进入官网</p>
   <p id="pre-countdown"></p>
   <p id="countdown"></p>
   <p id="current-check"></p> <!-- 新增：显示正在检测的线路 -->
@@ -112,7 +112,7 @@
     async function checkUrls() {
       for (let i = 0; i < decodedUrls.length; i++) {
         const url = decodedUrls[i];
-        document.getElementById("current-check").innerText = `正在检测第 ${i+1} 条线路: ${url}`;
+        document.getElementById("current-check").innerText = `正在检测线路 ${i+1}`;
 
         try {
           const start = Date.now();
