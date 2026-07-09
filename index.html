@@ -98,7 +98,7 @@
 
       h1 {
         margin: 0;
-        font-size: clamp(46px, 7vw, 84px);
+        font-size: clamp(40px, 7vw, 60px);
         line-height: 0.98;
         letter-spacing: 0;
       }
@@ -333,17 +333,6 @@
         box-shadow: none;
       }
 
-      .notice {
-        margin-top: 16px;
-        padding: 14px;
-        border-radius: 16px;
-        color: var(--muted);
-        background: rgba(255, 255, 255, 0.58);
-        border: 1px solid var(--line);
-        font-size: 13px;
-        line-height: 1.6;
-      }
-
       @media (max-width: 900px) {
         .page {
           padding: 20px 0;
@@ -393,7 +382,7 @@
         <div class="hero">
           <div class="brand">
             <p class="eyebrow">Xianluwan Official</p>
-            <h1>仙路湾<br />官网</h1>
+            <h1>仙路湾官网</h1>
             <p class="subtitle">
               正在为你检测当前浏览器到官网线路的连通性，优先选择最快可访问入口。
             </p>
@@ -422,11 +411,6 @@
 
           <div id="urlList" class="list"></div>
 
-          <div class="notice">
-            将三个目标地址填入脚本顶部的 <strong>SITE_URLS</strong>。支持域名、HTTP IP 加端口，
-            也可以用地址栏参数临时覆盖：
-            <strong>?u1=https://a.com&u2=http://1.36.199.12:9000/&u3=https://c.com</strong>。
-          </div>
         </div>
       </section>
     </main>
@@ -435,11 +419,12 @@
       const SITE_URLS = [
         { name: "入口一", url: "https://yiyi.xlw.app" },
         { name: "入口二", url: "https://mm.xlw.app" },
-        { name: "入口三", url: "http://1.36.199.12:9000" },
+        { name: "入口三", url: "http://1.36.199.12:7000" },
       ];
 
       const TIMEOUT_MS = 4500;
       const AUTO_JUMP_DELAY_MS = 5000;
+      const AUTO_JUMP_ENABLED = true;
 
       const params = new URLSearchParams(window.location.search);
       const targets = SITE_URLS.map((item, index) => {
@@ -549,6 +534,10 @@
       }
 
       async function probeUrl(url) {
+        if (isMixedContentBlocked(url)) {
+          return { ok: false, reason: "HTTPS页面拦截HTTP" };
+        }
+
         const controller = new AbortController();
         const timer = window.setTimeout(() => controller.abort(), TIMEOUT_MS);
 
@@ -560,10 +549,14 @@
           });
           return { ok: true, reason: "连接成功" };
         } catch (error) {
-          return {
-            ok: false,
-            reason: error.name === "AbortError" ? "超时" : "失败",
-          };
+          if (error.name === "AbortError") {
+            return { ok: false, reason: "超时" };
+          }
+
+          const imageResult = await probeImage(url);
+          if (imageResult.ok) return imageResult;
+
+          return { ok: false, reason: imageResult.reason || "失败" };
         } finally {
           window.clearTimeout(timer);
         }
@@ -592,7 +585,7 @@
         summary.textContent = `最佳入口：${bestTarget.name}，响应约 ${bestTarget.elapsed} ms。`;
         updateGlobal("ok", `已找到可访问线路：${bestTarget.name}`);
 
-        if (allowAutoJump && autoJump.checked && !didAutoJump) {
+        if (AUTO_JUMP_ENABLED && allowAutoJump && autoJump.checked && !didAutoJump) {
           didAutoJump = true;
           jumpBest.textContent = `${AUTO_JUMP_DELAY_MS / 1000} 秒后自动跳转`;
           window.setTimeout(() => {
@@ -602,6 +595,14 @@
               jumpBest.textContent = "跳转最佳入口";
             }
           }, AUTO_JUMP_DELAY_MS);
+        }
+      }
+
+      function isMixedContentBlocked(url) {
+        try {
+          return window.location.protocol === "https:" && new URL(url).protocol === "http:";
+        } catch {
+          return false;
         }
       }
 
@@ -636,6 +637,37 @@
         }
       }
 
+      function probeImage(url) {
+        return new Promise((resolve) => {
+          let done = false;
+          const image = new Image();
+          const timer = window.setTimeout(() => finish(false, "图片探测超时"), TIMEOUT_MS);
+
+          image.onload = () => finish(true, "图片探测成功");
+          image.onerror = () => finish(false, "连接失败");
+          image.src = getAssetProbeUrl(url);
+
+          function finish(ok, reason) {
+            if (done) return;
+            done = true;
+            window.clearTimeout(timer);
+            resolve({ ok, reason });
+          }
+        });
+      }
+
+      function getAssetProbeUrl(url) {
+        try {
+          const probeUrl = new URL(url);
+          probeUrl.pathname = "/favicon.ico";
+          probeUrl.search = "";
+          probeUrl.searchParams.set("xlw_probe", String(Date.now()));
+          return probeUrl.toString();
+        } catch {
+          return url;
+        }
+      }
+
       function escapeHtml(value) {
         return String(value)
           .replaceAll("&", "&amp;")
@@ -648,6 +680,41 @@
       function escapeAttr(value) {
         return escapeHtml(value).replaceAll("`", "&#096;");
       }
+    </script>
+    <style>
+      .crisp-client .cc-tlyw,
+      .crisp-client .cc-kxkl,
+      .crisp-client .cc-nsge,
+      .crisp-client iframe {
+        left: 20px !important;
+        right: auto !important;
+      }
+
+      @media (max-width: 620px) {
+        .crisp-client .cc-tlyw,
+        .crisp-client .cc-kxkl,
+        .crisp-client .cc-nsge,
+        .crisp-client iframe {
+          left: 12px !important;
+          right: auto !important;
+        }
+      }
+    </style>
+    <script type="text/javascript">
+      window.$crisp = [];
+      window.CRISP_WEBSITE_ID = "0f267bf9-a61b-48da-870b-b4bac9ed9a9f";
+      window.CRISP_RUNTIME_CONFIG = {
+        position: "left",
+      };
+      window.$crisp.push(["config", "position:reverse", [true]]);
+
+      (function () {
+        var d = document;
+        var s = d.createElement("script");
+        s.src = "https://client.crisp.chat/l.js";
+        s.async = 1;
+        d.getElementsByTagName("head")[0].appendChild(s);
+      })();
     </script>
   </body>
 </html>
