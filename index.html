@@ -513,10 +513,11 @@
         result.name = target.name;
         result.url = target.url;
         result.elapsed = elapsed;
+        result.rankElapsed = result.estimated ? Number.MAX_SAFE_INTEGER : elapsed;
 
         card.dataset.state = result.ok ? "ok" : "bad";
         status.textContent = result.ok ? "可访问" : "不可访问";
-        latency.textContent = result.ok ? `${elapsed} ms` : result.reason;
+        latency.textContent = result.ok && !result.estimated ? `${elapsed} ms` : result.reason;
 
         if (single) {
           const allCards = [...document.querySelectorAll(".url-card")];
@@ -526,6 +527,7 @@
             url: targets[cardIndex].url,
             ok: item.dataset.state === "ok",
             elapsed: Number(document.querySelector(`#latency-${cardIndex}`).textContent.replace(" ms", "")) || Infinity,
+            rankElapsed: Number(document.querySelector(`#latency-${cardIndex}`).textContent.replace(" ms", "")) || Infinity,
           }));
           chooseBest(currentResults, false);
         }
@@ -535,7 +537,7 @@
 
       async function probeUrl(url) {
         if (isMixedContentBlocked(url)) {
-          return { ok: true, reason: "浏览器限制，直接跳转" };
+          return { ok: true, reason: "浏览器限制，直接跳转", estimated: true };
         }
 
         const result = await firstSuccessfulProbe([
@@ -546,10 +548,6 @@
 
         if (result.ok) {
           return result;
-        }
-
-        if (isHttpLikeUrl(url)) {
-          return { ok: true, reason: "可尝试跳转" };
         }
 
         return result;
@@ -652,23 +650,10 @@
         });
       }
 
-      function wait(ms) {
-        return new Promise((resolve) => window.setTimeout(resolve, ms));
-      }
-
-      function isHttpLikeUrl(url) {
-        try {
-          const protocol = new URL(url).protocol;
-          return protocol === "http:" || protocol === "https:";
-        } catch {
-          return false;
-        }
-      }
-
       function chooseBest(results, allowAutoJump = true) {
         const available = results
           .filter((item) => item.ok)
-          .sort((a, b) => a.elapsed - b.elapsed);
+          .sort((a, b) => (a.rankElapsed ?? a.elapsed) - (b.rankElapsed ?? b.elapsed));
 
         document.querySelectorAll(".url-card").forEach((card) => {
           card.classList.remove("best");
@@ -685,7 +670,9 @@
         bestTarget = available[0];
         document.querySelector(`#target-${bestTarget.index}`).classList.add("best");
         jumpBest.disabled = false;
-        summary.textContent = `最佳入口：${bestTarget.name}，响应约 ${bestTarget.elapsed} ms。`;
+        summary.textContent = Number.isFinite(bestTarget.rankElapsed ?? bestTarget.elapsed)
+          ? `最佳入口：${bestTarget.name}，响应约 ${bestTarget.elapsed} ms。`
+          : `最佳入口：${bestTarget.name}，浏览器限制检测，可直接跳转。`;
         updateGlobal("ok", `已找到可访问线路：${bestTarget.name}`);
 
         if (AUTO_JUMP_ENABLED && allowAutoJump && autoJump.checked && !didAutoJump) {
