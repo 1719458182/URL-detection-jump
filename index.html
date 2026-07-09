@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
@@ -535,30 +535,133 @@
 
       async function probeUrl(url) {
         if (isMixedContentBlocked(url)) {
-          return { ok: false, reason: "HTTPS页面拦截HTTP" };
+          return { ok: true, reason: "浏览器限制，直接跳转" };
         }
 
-        const controller = new AbortController();
-        const timer = window.setTimeout(() => controller.abort(), TIMEOUT_MS);
+        const result = await firstSuccessfulProbe([
+          probeFetch(url),
+          probeImage(url),
+          probeFrame(url),
+        ]);
 
-        try {
-          await fetch(getProbeUrl(url), {
+        if (result.ok) {
+          return result;
+        }
+
+        if (isHttpLikeUrl(url)) {
+          return { ok: true, reason: "可尝试跳转" };
+        }
+
+        return result;
+      }
+
+      function firstSuccessfulProbe(probes) {
+        return new Promise((resolve) => {
+          let settled = 0;
+          let lastFailure = { ok: false, reason: "失败" };
+          const timer = window.setTimeout(() => {
+            resolve({ ok: false, reason: "超时" });
+          }, TIMEOUT_MS);
+
+          probes.forEach((probe) => {
+            probe
+              .then((result) => {
+                if (result.ok) {
+                  window.clearTimeout(timer);
+                  resolve(result);
+                  return;
+                }
+
+                settled += 1;
+                lastFailure = result;
+                if (settled === probes.length) {
+                  window.clearTimeout(timer);
+                  resolve(lastFailure);
+                }
+              })
+              .catch(() => {
+                settled += 1;
+                lastFailure = { ok: false, reason: "失败" };
+                if (settled === probes.length) {
+                  window.clearTimeout(timer);
+                  resolve(lastFailure);
+                }
+              });
+          });
+        });
+      }
+
+      function probeFetch(url) {
+        return new Promise((resolve) => {
+          const controller = new AbortController();
+          const timer = window.setTimeout(() => {
+            controller.abort();
+            resolve({ ok: false, reason: "请求超时" });
+          }, TIMEOUT_MS);
+
+          fetch(getProbeUrl(url), {
             mode: "no-cors",
             cache: "no-store",
             signal: controller.signal,
-          });
-          return { ok: true, reason: "连接成功" };
-        } catch (error) {
-          if (error.name === "AbortError") {
-            return { ok: false, reason: "超时" };
+          })
+            .then(() => resolve({ ok: true, reason: "请求成功" }))
+            .catch(() => resolve({ ok: false, reason: "请求失败" }))
+            .finally(() => window.clearTimeout(timer));
+        });
+      }
+
+      function probeImage(url) {
+        return new Promise((resolve) => {
+          let done = false;
+          const image = new Image();
+          const timer = window.setTimeout(() => finish(false, "图片超时"), TIMEOUT_MS);
+
+          image.onload = () => finish(true, "图片成功");
+          image.onerror = () => finish(false, "图片失败");
+          image.src = getAssetProbeUrl(url);
+
+          function finish(ok, reason) {
+            if (done) return;
+            done = true;
+            window.clearTimeout(timer);
+            resolve({ ok, reason });
           }
+        });
+      }
 
-          const imageResult = await probeImage(url);
-          if (imageResult.ok) return imageResult;
+      function probeFrame(url) {
+        return new Promise((resolve) => {
+          let done = false;
+          const frame = document.createElement("iframe");
+          const timer = window.setTimeout(() => finish(false, "页面超时"), TIMEOUT_MS);
 
-          return { ok: false, reason: imageResult.reason || "失败" };
-        } finally {
-          window.clearTimeout(timer);
+          frame.style.cssText =
+            "position:fixed;width:1px;height:1px;left:-9999px;top:-9999px;opacity:0;pointer-events:none;";
+          frame.onload = () => finish(true, "页面成功");
+          frame.onerror = () => finish(false, "页面失败");
+          frame.src = getProbeUrl(url);
+          document.body.appendChild(frame);
+
+          function finish(ok, reason) {
+            if (done) return;
+            done = true;
+            window.clearTimeout(timer);
+            frame.remove();
+            resolve({ ok, reason });
+          }
+        });
+      }
+
+      function wait(ms) {
+        return new Promise((resolve) => window.setTimeout(resolve, ms));
+      }
+
+      function isHttpLikeUrl(url) {
+        try {
+          const protocol = new URL(url).protocol;
+          return protocol === "http:" || protocol === "https:";
+        } catch {
+          return false;
         }
       }
 
@@ -637,25 +740,6 @@
         }
       }
 
-      function probeImage(url) {
-        return new Promise((resolve) => {
-          let done = false;
-          const image = new Image();
-          const timer = window.setTimeout(() => finish(false, "图片探测超时"), TIMEOUT_MS);
-
-          image.onload = () => finish(true, "图片探测成功");
-          image.onerror = () => finish(false, "连接失败");
-          image.src = getAssetProbeUrl(url);
-
-          function finish(ok, reason) {
-            if (done) return;
-            done = true;
-            window.clearTimeout(timer);
-            resolve({ ok, reason });
-          }
-        });
-      }
-
       function getAssetProbeUrl(url) {
         try {
           const probeUrl = new URL(url);
@@ -718,3 +802,4 @@
     </script>
   </body>
 </html>
+
