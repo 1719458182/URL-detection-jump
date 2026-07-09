@@ -513,11 +513,11 @@
         result.name = target.name;
         result.url = target.url;
         result.elapsed = elapsed;
-        result.rankElapsed = result.estimated ? Number.MAX_SAFE_INTEGER : elapsed;
+        result.rankElapsed = elapsed;
 
         card.dataset.state = result.ok ? "ok" : "bad";
         status.textContent = result.ok ? "可访问" : "不可访问";
-        latency.textContent = result.ok && !result.estimated ? `${elapsed} ms` : result.reason;
+        latency.textContent = result.ok ? `${elapsed} ms` : result.reason;
 
         if (single) {
           const allCards = [...document.querySelectorAll(".url-card")];
@@ -537,13 +537,12 @@
 
       async function probeUrl(url) {
         if (isMixedContentBlocked(url)) {
-          return { ok: true, reason: "浏览器限制，直接跳转", estimated: true };
+          return { ok: false, reason: "浏览器拦截HTTP" };
         }
 
         const result = await firstSuccessfulProbe([
           probeFetch(url),
           probeImage(url),
-          probeFrame(url),
         ]);
 
         if (result.ok) {
@@ -627,29 +626,6 @@
         });
       }
 
-      function probeFrame(url) {
-        return new Promise((resolve) => {
-          let done = false;
-          const frame = document.createElement("iframe");
-          const timer = window.setTimeout(() => finish(false, "页面超时"), TIMEOUT_MS);
-
-          frame.style.cssText =
-            "position:fixed;width:1px;height:1px;left:-9999px;top:-9999px;opacity:0;pointer-events:none;";
-          frame.onload = () => finish(true, "页面成功");
-          frame.onerror = () => finish(false, "页面失败");
-          frame.src = getProbeUrl(url);
-          document.body.appendChild(frame);
-
-          function finish(ok, reason) {
-            if (done) return;
-            done = true;
-            window.clearTimeout(timer);
-            frame.remove();
-            resolve({ ok, reason });
-          }
-        });
-      }
-
       function chooseBest(results, allowAutoJump = true) {
         const available = results
           .filter((item) => item.ok)
@@ -670,9 +646,7 @@
         bestTarget = available[0];
         document.querySelector(`#target-${bestTarget.index}`).classList.add("best");
         jumpBest.disabled = false;
-        summary.textContent = Number.isFinite(bestTarget.rankElapsed ?? bestTarget.elapsed)
-          ? `最佳入口：${bestTarget.name}，响应约 ${bestTarget.elapsed} ms。`
-          : `最佳入口：${bestTarget.name}，浏览器限制检测，可直接跳转。`;
+        summary.textContent = `最佳入口：${bestTarget.name}，响应约 ${bestTarget.elapsed} ms。`;
         updateGlobal("ok", `已找到可访问线路：${bestTarget.name}`);
 
         if (AUTO_JUMP_ENABLED && allowAutoJump && autoJump.checked && !didAutoJump) {
