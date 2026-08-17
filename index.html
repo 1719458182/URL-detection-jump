@@ -13,17 +13,14 @@
     .panel { padding: 24px; border: 1px solid #e5eaf2; border-radius: 20px; background: #fff; box-shadow: 0 22px 60px #17203312; }
     .recommendation { display: flex; gap: 14px; align-items: center; justify-content: space-between; margin: 0 0 20px; padding: 18px 20px; border: 1px solid #b9e2c5; border-radius: 14px; background: #f2fbf5; }
     .recommendation strong { display: block; }.recommendation .address { margin-top: 5px; }
-    .recommendation-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+    .recommendation-actions, .actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
     .list { display: grid; gap: 10px; padding: 0; margin: 0; list-style: none; }
     .card { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center; padding: 15px; border: 1px solid #dce3ef; border-radius: 12px; }
     .card p { margin: 3px 0 0; font-size: 13px; }
     .address { overflow-wrap: anywhere; color: #397149; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
     .status { color: #62708a; font-size: 13px; }.status.ok { color: #12803a; font-weight: 650; }.status.fail { color: #bd3131; font-weight: 650; }
-    .actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
-    button, a.action { display: inline-flex; align-items: center; justify-content: center; min-height: 40px; padding: 9px 14px; border: 0; border-radius: 9px; color: #fff; background: #177a3b; box-shadow: 0 2px 4px #177a3b24; font: inherit; font-weight: 700; text-decoration: none; cursor: pointer; transition: transform .15s, background .15s; }
-    button:hover, a.action:hover { background: #10662f; transform: translateY(-1px); } button:focus-visible, a:focus-visible, summary:focus-visible { outline: 3px solid #96d6aa; outline-offset: 2px; }
+    button, a.action { display: inline-flex; align-items: center; justify-content: center; min-height: 40px; padding: 9px 14px; border: 0; border-radius: 9px; color: #fff; background: #177a3b; box-shadow: 0 2px 4px #177a3b24; font: inherit; font-weight: 700; text-decoration: none; cursor: pointer; }
     button.secondary { color: #177a3b; background: #e8f6ec; box-shadow: none; }
-    .card { background: #fff; transition: border-color .15s, box-shadow .15s; }.card:hover { border-color: #b9ddc2; box-shadow: 0 6px 18px #1720330a; }
     details { margin-top: 12px; border: 1px solid #dce3ef; border-radius: 12px; padding: 0 15px; background: #fbfcfe; }
     summary { padding: 14px 0; color: #1f7a3e; font-weight: 650; cursor: pointer; }
     details .list { padding-bottom: 15px; }
@@ -31,25 +28,14 @@
   </style>
 </head>
 <body>
-  <main>
-    <section class="panel" aria-live="polite">
-      <div id="recommendation" class="recommendation">
-        <div id="recommendation-content">正在检测候选入口…</div>
-        <div class="recommendation-actions">
-          <a id="recommended-go" class="action" href="#" hidden>进入推荐入口</a>
-          <button id="retry" type="button">重新检测</button>
-        </div>
-      </div>
-      <ul id="top-list" class="list"></ul>
-      <details id="more" hidden>
-        <summary id="more-summary"></summary>
-        <ul id="more-list" class="list"></ul>
-      </details>
-    </section>
-  </main>
-
+  <main><section class="panel" aria-live="polite">
+    <div id="recommendation" class="recommendation"><div id="recommendation-content">正在检测候选入口…</div><div class="recommendation-actions"><a id="recommended-go" class="action" href="#" hidden>进入推荐入口</a><button id="retry" type="button">重新检测</button></div></div>
+    <ul id="top-list" class="list"></ul>
+    <details id="more" hidden><summary id="more-summary"></summary><ul id="more-list" class="list"></ul></details>
+  </section></main>
   <script>
     const candidates = [
+      { name: '优先入口', url: 'https://quanma.xlw.uk/', tag: '优先' },
       { name: '入口 1', url: 'https://js.xlw1.cc.cd/', tag: '候选' },
       { name: '入口 2', url: 'https://rr.xlw.app/', tag: '候选' },
       { name: '入口 4', url: 'https://yiyi.xlw.app/', tag: '候选' },
@@ -58,72 +44,35 @@
       { name: '入口 7', url: 'https://yi.xlw.app/', tag: '候选' },
       { name: '入口 8', url: 'https://yi.xlw1.cc.cd/', tag: '候选' }
     ];
-    const timeoutMs = 8000;
-    const topList = document.querySelector('#top-list');
-    const more = document.querySelector('#more');
-    const moreList = document.querySelector('#more-list');
-    const moreSummary = document.querySelector('#more-summary');
-    const retry = document.querySelector('#retry');
-    const recommendation = document.querySelector('#recommendation');
-    const recommendationContent = document.querySelector('#recommendation-content');
-    const recommendedGo = document.querySelector('#recommended-go');
-
+    const timeoutMs = 8000, redirectDelayMs = 3000;
+    let redirectTimer;
+    const topList = document.querySelector('#top-list'), more = document.querySelector('#more'), moreList = document.querySelector('#more-list'), moreSummary = document.querySelector('#more-summary'), retry = document.querySelector('#retry'), recommendation = document.querySelector('#recommendation'), recommendationContent = document.querySelector('#recommendation-content'), recommendedGo = document.querySelector('#recommended-go');
     const escapeHtml = value => String(value).replace(/[&<>'"]/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[char]);
-
     function render(items) {
       const card = item => `<li class="card"><div><strong>${escapeHtml(item.name)}</strong><p class="address">${escapeHtml(item.url)}</p><span class="status ${item.status.startsWith('浏览器可达') ? 'ok' : item.status === '不可达' ? 'fail' : ''}">${escapeHtml(item.status)}</span></div><div class="actions"><a class="action" href="${escapeHtml(item.url)}" rel="noopener noreferrer">打开</a><button class="secondary" type="button" data-copy="${escapeHtml(item.url)}">复制</button></div></li>`;
       topList.innerHTML = items.slice(0, 3).map(card).join('');
-      const remaining = items.slice(3);
-      moreList.innerHTML = remaining.map(card).join('');
-      more.hidden = remaining.length === 0;
-      moreSummary.textContent = `更多入口（${remaining.length} 个）`;
+      const remaining = items.slice(3); moreList.innerHTML = remaining.map(card).join(''); more.hidden = !remaining.length; moreSummary.textContent = `更多入口（${remaining.length} 个）`;
     }
-
     async function probe(candidate) {
-      const controller = new AbortController();
-      const started = performance.now();
-      const timer = setTimeout(() => controller.abort(), timeoutMs);
-      try {
-        await fetch(candidate.url, { mode: 'no-cors', cache: 'no-store', signal: controller.signal });
-        return { ...candidate, status: '可达', latency: Math.round(performance.now() - started) };
-      } catch {
-        return { ...candidate, status: '不可达', latency: null };
-      } finally { clearTimeout(timer); }
+      const controller = new AbortController(), started = performance.now(), timer = setTimeout(() => controller.abort(), timeoutMs);
+      try { await fetch(candidate.url, { mode: 'no-cors', cache: 'no-store', signal: controller.signal }); return { ...candidate, latency: Math.round(performance.now() - started) }; }
+      catch { return { ...candidate, latency: null }; } finally { clearTimeout(timer); }
     }
-
     async function check() {
-      retry.disabled = true;
-      retry.textContent = '检测中…';
-      recommendation.hidden = false;
-      recommendationContent.textContent = '正在检测候选入口…';
-      recommendedGo.hidden = true;
+      clearTimeout(redirectTimer); retry.disabled = true; retry.textContent = '检测中…'; recommendation.hidden = false; recommendationContent.textContent = '正在检测候选入口…'; recommendedGo.hidden = true;
       try {
         render(candidates.map(item => ({ ...item, status: '正在检测' })));
-        const results = await Promise.all(candidates.map(probe));
-        results.sort((a, b) => (a.latency ?? Infinity) - (b.latency ?? Infinity));
+        const results = await Promise.all(candidates.map(probe)); results.sort((a, b) => (a.latency ?? Infinity) - (b.latency ?? Infinity));
         render(results.map(item => ({ ...item, status: item.latency === null ? '不可达' : `浏览器可达 ${item.latency}ms · ${item.tag}` })));
-        const best = results.find(item => item.latency !== null);
-        if (best) {
-          recommendationContent.innerHTML = `<strong>推荐入口：${escapeHtml(best.name)}</strong><span class="address">${escapeHtml(best.url)}</span>`;
-          recommendedGo.href = best.url;
-          recommendedGo.hidden = false;
-        } else {
-          recommendationContent.textContent = '暂未检测到可达入口，请点击重新检测。';
-        }
-      } finally {
-        retry.disabled = false;
-        retry.textContent = '重新检测';
-      }
+        const preferred = results.find(item => item.tag === '优先'), best = preferred.latency !== null ? preferred : results.find(item => item.latency !== null);
+        if (!best) { recommendationContent.textContent = '暂未检测到可达入口，请点击重新检测。'; return; }
+        recommendationContent.innerHTML = `<strong>推荐入口：${escapeHtml(best.name)}</strong><span class="address">${escapeHtml(best.url)}</span>`; recommendedGo.href = best.url; recommendedGo.hidden = false;
+        recommendationContent.innerHTML += `<p>${best === preferred ? '优先入口可达' : '优先入口不可达，已选择延迟最低的可达入口'}，将在 3 秒后自动跳转。</p>`;
+        redirectTimer = setTimeout(() => location.href = best.url, redirectDelayMs);
+      } finally { retry.disabled = false; retry.textContent = '重新检测'; }
     }
-
-    document.addEventListener('click', async event => {
-      const url = event.target.dataset.copy;
-      if (!url) return;
-      await navigator.clipboard.writeText(url);
-      event.target.textContent = '已复制';
-    });
-    retry.addEventListener('click', check);
-    check();
+    document.addEventListener('click', async event => { const url = event.target.dataset.copy; if (!url) return; await navigator.clipboard.writeText(url); event.target.textContent = '已复制'; });
+    retry.addEventListener('click', check); check();
   </script>
 </body>
 </html>
